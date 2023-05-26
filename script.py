@@ -42,10 +42,7 @@ class OpcodeSubtype:
         print(mapped_data)
         print(BitArray(int=1, length=len(mapped_data)))
         for index, pos in enumerate(self.bits):
-            self.data[index] = BitArray(int=1, length=len(mapped_data)) & (
-                mapped_data << pos
-            )
-            print(bin(mapped_data << pos))
+            self.data[index] = mapped_data[pos]
         self.update_mapped_data()
 
         print(self.data)
