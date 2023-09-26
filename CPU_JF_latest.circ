@@ -55,7 +55,7 @@
     <a name="appearance" val="logisim_evolution"/>
     <a name="circuit" val="main"/>
     <a name="circuitnamedboxfixedsize" val="true"/>
-    <a name="simulationFrequency" val="1.0"/>
+    <a name="simulationFrequency" val="1000.0"/>
     <comp lib="0" loc="(110,600)" name="Tunnel">
       <a name="facing" val="east"/>
       <a name="label" val="CLK"/>
@@ -451,17 +451,20 @@
       <a name="addrWidth" val="16"/>
       <a name="appearance" val="classic"/>
       <a name="contents">addr/data: 16 20
-4080 a0 268 80080 29d 168 29d 168
+14080 a0 268 80080 29d 168 29d 168
 29d 168 29d 168 29d 168 29d 168
 29d 168 29d 168 29d 168 29d 168
 29d 168 29d 168 29d 168 29d 168
 29d 168 29d 168 29d 168 29d 168
-29d 168 29d 168 29d 168 290 168
-290 168 593 168 693 168 69f 168
-792 168 695 168 39a 168 290 168
-290 168 9a 168 4080 40069 205 268
-b0 80080 79c 168 90 80082 40069 1108
-ffb59 7f
+29d 168 29d 168 29d 168 14080 40069
+90 1108 2159 14080 40069 205 268 14082
+90 168 b0 14082 40069 80080 79c 168
+290 168 290 168 290 168 290 168
+205 14082 268 94 1108 159 fec58 90
+80082 40069 1108 ffb59 80080 290 168 290
+168 593 168 693 168 69f 168 792
+168 695 168 39a 168 290 168 290
+168 9a 168 fc758 7f
 </a>
       <a name="dataWidth" val="20"/>
       <a name="label" val="PRG_MEM"/>
@@ -494,7 +497,9 @@ ffb59 7f
     <comp lib="5" loc="(2350,510)" name="TTY">
       <a name="rows" val="9"/>
     </comp>
-    <comp lib="5" loc="(2440,560)" name="Keyboard"/>
+    <comp lib="5" loc="(2440,560)" name="Keyboard">
+      <a name="trigger" val="falling"/>
+    </comp>
     <comp lib="5" loc="(2590,620)" name="Joystick">
       <a name="bits" val="5"/>
       <a name="facing" val="west"/>
@@ -504,6 +509,9 @@ ffb59 7f
     </comp>
     <comp lib="5" loc="(680,1050)" name="LED">
       <a name="label" val="ICnI"/>
+    </comp>
+    <comp lib="8" loc="(2996,451)" name="Text">
+      <a name="text" val="Text Buffer: Fallende Flanke -&gt; fix early clearing"/>
     </comp>
     <comp loc="(1070,690)" name="CPU_Register"/>
     <comp loc="(1370,930)" name="ALU"/>
@@ -1365,6 +1373,33 @@ ffb59 7f
       <a name="fanout" val="1"/>
       <a name="incoming" val="20"/>
     </comp>
+    <comp lib="0" loc="(560,250)" name="Splitter">
+      <a name="bit1" val="0"/>
+      <a name="bit10" val="none"/>
+      <a name="bit11" val="none"/>
+      <a name="bit12" val="none"/>
+      <a name="bit13" val="none"/>
+      <a name="bit14" val="none"/>
+      <a name="bit15" val="none"/>
+      <a name="bit16" val="none"/>
+      <a name="bit17" val="none"/>
+      <a name="bit18" val="none"/>
+      <a name="bit19" val="none"/>
+      <a name="bit2" val="0"/>
+      <a name="bit3" val="0"/>
+      <a name="bit4" val="0"/>
+      <a name="bit5" val="0"/>
+      <a name="bit6" val="0"/>
+      <a name="bit7" val="0"/>
+      <a name="bit8" val="none"/>
+      <a name="bit9" val="none"/>
+      <a name="fanout" val="1"/>
+      <a name="incoming" val="20"/>
+    </comp>
+    <comp lib="0" loc="(570,220)" name="Constant">
+      <a name="value" val="0x5"/>
+      <a name="width" val="8"/>
+    </comp>
     <comp lib="0" loc="(590,780)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
@@ -1394,7 +1429,7 @@ ffb59 7f
       <a name="output" val="true"/>
       <a name="width" val="3"/>
     </comp>
-    <comp lib="0" loc="(620,470)" name="Pin">
+    <comp lib="0" loc="(780,470)" name="Pin">
       <a name="appearance" val="NewPins"/>
       <a name="facing" val="west"/>
       <a name="label" val="Result"/>
@@ -1437,6 +1472,7 @@ ffb59 7f
       <a name="negate1" val="true"/>
       <a name="size" val="30"/>
     </comp>
+    <comp lib="1" loc="(670,230)" name="NOT Gate"/>
     <comp lib="2" loc="(1060,290)" name="Multiplexer">
       <a name="width" val="8"/>
     </comp>
@@ -1447,9 +1483,14 @@ ffb59 7f
       <a name="selloc" val="tr"/>
       <a name="width" val="3"/>
     </comp>
+    <comp lib="2" loc="(770,470)" name="Multiplexer">
+      <a name="selloc" val="tr"/>
+      <a name="width" val="3"/>
+    </comp>
     <comp lib="2" loc="(930,550)" name="Multiplexer">
       <a name="select" val="2"/>
     </comp>
+    <comp lib="3" loc="(630,230)" name="Comparator"/>
     <comp lib="4" loc="(1060,350)" name="Register">
       <a name="appearance" val="logisim_evolution"/>
       <a name="label" val="Flag_Mux"/>
@@ -1670,6 +1711,8 @@ f a0f a4f b4f 9 a09 a49 b49
     <wire from="(430,200)" to="(430,230)"/>
     <wire from="(440,180)" to="(1310,180)"/>
     <wire from="(450,290)" to="(470,290)"/>
+    <wire from="(470,260)" to="(470,290)"/>
+    <wire from="(470,260)" to="(550,260)"/>
     <wire from="(470,290)" to="(470,490)"/>
     <wire from="(470,290)" to="(510,290)"/>
     <wire from="(470,490)" to="(470,790)"/>
@@ -1677,19 +1720,34 @@ f a0f a4f b4f 9 a09 a49 b49
     <wire from="(470,790)" to="(530,790)"/>
     <wire from="(510,290)" to="(510,330)"/>
     <wire from="(530,340)" to="(540,340)"/>
-    <wire from="(530,370)" to="(620,370)"/>
+    <wire from="(530,370)" to="(600,370)"/>
     <wire from="(530,400)" to="(620,400)"/>
     <wire from="(530,430)" to="(620,430)"/>
     <wire from="(530,460)" to="(560,460)"/>
     <wire from="(530,480)" to="(560,480)"/>
     <wire from="(540,300)" to="(540,340)"/>
     <wire from="(540,300)" to="(550,300)"/>
+    <wire from="(550,250)" to="(550,260)"/>
+    <wire from="(550,250)" to="(560,250)"/>
     <wire from="(550,780)" to="(590,780)"/>
+    <wire from="(570,220)" to="(590,220)"/>
     <wire from="(570,450)" to="(720,450)"/>
-    <wire from="(590,470)" to="(620,470)"/>
+    <wire from="(580,240)" to="(590,240)"/>
+    <wire from="(590,470)" to="(730,470)"/>
+    <wire from="(600,350)" to="(600,370)"/>
+    <wire from="(600,350)" to="(730,350)"/>
+    <wire from="(600,370)" to="(620,370)"/>
+    <wire from="(630,230)" to="(640,230)"/>
     <wire from="(650,300)" to="(1030,300)"/>
     <wire from="(650,310)" to="(720,310)"/>
+    <wire from="(670,230)" to="(750,230)"/>
     <wire from="(720,310)" to="(720,450)"/>
+    <wire from="(730,350)" to="(730,460)"/>
+    <wire from="(730,460)" to="(740,460)"/>
+    <wire from="(730,470)" to="(730,480)"/>
+    <wire from="(730,480)" to="(740,480)"/>
+    <wire from="(750,230)" to="(750,450)"/>
+    <wire from="(770,470)" to="(780,470)"/>
     <wire from="(810,620)" to="(850,620)"/>
     <wire from="(870,530)" to="(890,530)"/>
     <wire from="(870,540)" to="(890,540)"/>
