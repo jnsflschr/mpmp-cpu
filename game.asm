@@ -32,9 +32,12 @@
 ; %reg7 : field content 0
 
 init_game:
-  ldc %reg0 0x1410 ; address for column 0 : row 0
   ldc %reg1 0x00
-  ldc %reg2 0x1420
+  ldc %reg0 0x1404 ; address for score
+  st %reg0 %reg1
+
+  ldc %reg0 0x1410 ; address for field min
+  ldc %reg2 0x1420 ; address for field max+1
   jr reset_game_state
 ; -> reset_game_state
 
@@ -167,8 +170,7 @@ convert_field:
   ; convert field to string
   ; store character content in registers %reg4 - %reg7
 
-  ; Load the field value (e.g., 512)
-  ; ldc %reg1 512 ; field value
+  ; Load the field value (e.g. 512)
   ldc %reg2 0x8000 ; -1
 
   ; Loop for /1000
@@ -270,8 +272,17 @@ print_field:
   ldc %reg0 0x8000 ; address for writing to the screen
   ldc %reg1 0x7C ; vertical line
   st %reg0 %reg1
+
+  ; print score value on first column
+  ldc %reg3 0x01
+  ldc %reg1 0x1400 ; address for column parsing state
+  ld %reg2 %reg1
+  tst %reg2 %reg3
+  jzr print_score
+
   ldc %reg1 0x0A ; new line
   st %reg0 %reg1
+
   jr print_column_border
 ; -> print_column_border
 
@@ -498,6 +509,15 @@ calc_it1_merge:
   mov %reg5 %reg6 ; %reg5 <- reg6
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
+
+  ; add score
+  ldc %reg0 0x1404 ; address for score
+  ld %reg2 %reg0 ; load score from RAM
+  add %reg2 %reg2 %reg4 ; add score
+  st %reg0 %reg2 ; store score back to RAM
+
+  ldc %reg0 0x00 ; reset zero ref
+
   jr calc_it2
 ; -> calc_it2
 
@@ -542,6 +562,14 @@ calc_it2_merge:
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
 
+  ; add score
+  ldc %reg0 0x1404 ; address for score
+  ld %reg2 %reg0 ; load score from RAM
+  add %reg2 %reg2 %reg5 ; add score
+  st %reg0 %reg2 ; store score back to RAM
+  
+  ldc %reg0 0x00 ; reset zero ref
+
   jr calc_it3
 ; -> calc_it3
 
@@ -581,6 +609,14 @@ calc_it3_merge:
   ldc %reg2 0x01 
   shl %reg6 %reg6 %reg2 ; reg6 = reg6 * 2
   mov %reg7 %reg0 ; %reg7 <- 0
+
+  ; add score
+  ldc %reg0 0x1404 ; address for score
+  ld %reg2 %reg0 ; load score from RAM
+  add %reg2 %reg2 %reg6 ; add score
+  st %reg0 %reg2 ; store score back to RAM
+  
+  ldc %reg0 0x00 ; reset zero ref
 
   jr calc_it_end
 ; -> calc_it_end
@@ -708,7 +744,42 @@ calc_end:
   ldc %reg0 0x8003 ; address for writing to the screen
   ldc %reg2 0x0A ; new line
   st %reg0 %reg2
-  jr print_state ; if keyboard buffer is not empty, print state
+  jr add_zero ; if keyboard buffer is not empty, print state
+; -> add_zero
+
+add_zero:
+  ; a: constant with remaining fields
+  ; b: random number between 0 and a
+  ; b = rand
+  ; b = b AND 15
+  ; b = b - 16
+  ; b = 
+  ldc %reg0 0x1410
+  ldc %reg1 0x5
+  ldc %reg2 0x0
+  ldc %reg3 0x1410 ; min adress
+  ldc %reg4 0x141F ; max adress
+
+add_zero_next:
+  ld %reg3 %reg0
+
+  inc %reg0 ; increase address
+  or %reg0 %reg0 %reg3 ; add min address
+  and %reg0 %reg0 %reg4 ; mask max address
+
+  tst %reg2 %reg3 ; test if field is empty
+  jnzr add_zero_next
+
+  dec %reg1 ; decrease loop counter
+
+  tst %reg2 %reg1 ; test if loop counter is 0 
+  jzr add_zero_end
+  jr add_zero_next
+
+add_zero_end:
+  ldc %reg1 0x2
+  st %reg0 %reg1
+  jr print_state
 ; -> print_state
 
 
@@ -744,3 +815,96 @@ print_score_title:
 
   jr print_column
 ; -> print_column
+
+print_score:
+  ldc %reg2 0x1404 ; address for score
+  ld %reg1 %reg2 ; load score from RAM
+  ldc %reg2 0x8000 ; address for writing to the screen, also -1
+
+  ; convert score to ASCII
+  ; Loop for /1000
+  ldc %reg3 0x00 ; div counter
+score_div_3_loop:
+    ldc %reg0 1000 ; divisor
+    sub %reg1 %reg1 %reg0
+    and %reg0 %reg1 %reg2
+    tst %reg0 %reg2
+    jzr score_div_3_loop_end
+    inc %reg3
+    jr score_div_3_loop
+score_div_3_loop_end:
+  ldc %reg0 1000 ; divisor
+  add %reg1 %reg1 %reg0 ; add divisor back to char value
+  mov %reg4 %reg3 ; move div counter to %reg4
+
+  ; Loop for /100
+  ldc %reg3 0x00 ; div counter
+score_div_2_loop:
+    ldc %reg0 100 ; divisor
+    sub %reg1 %reg1 %reg0
+    and %reg0 %reg1 %reg2
+    tst %reg0 %reg2
+    jzr score_div_2_loop_end
+    inc %reg3
+    jr score_div_2_loop
+score_div_2_loop_end:
+  ldc %reg0 100 ; divisor
+  add %reg1 %reg1 %reg0 ; add divisor back to char value
+  mov %reg5 %reg3 ; move div counter to %reg5
+
+  ; Loop for /10
+  ldc %reg3 0x00 ; div counter
+score_div_1_loop:
+    ldc %reg0 10 ; divisor
+    sub %reg1 %reg1 %reg0
+    and %reg0 %reg1 %reg2
+    tst %reg0 %reg2
+    jzr score_div_1_loop_end
+    inc %reg3
+    jr score_div_1_loop
+score_div_1_loop_end:
+  ldc %reg0 10 ; divisor
+  add %reg1 %reg1 %reg0 ; add divisor back to char value
+  mov %reg6 %reg3 ; move div counter to %reg6
+
+  mov %reg7 %reg1 ; move char value to %reg7
+
+  ; Convert the ASCII characters to the actual characters
+  ldc %reg0 0x30 ; ASCII code for '0'
+  ldc %reg1 0x20 ; ASCII code for ' '
+
+; convert '0' to ' '
+score_convert_field_3:
+    add %reg4 %reg4 %reg0
+    tst %reg0 %reg4
+    jnzr score_convert_field_2
+    mov %reg4 %reg1
+score_convert_field_2:
+    add %reg5 %reg5 %reg0
+    tst %reg0 %reg5
+    jnzr score_convert_field_1
+    mov %reg5 %reg1
+score_convert_field_1:
+    add %reg6 %reg6 %reg0
+    tst %reg0 %reg6
+    jnzr score_convert_field_0
+    mov %reg6 %reg1
+score_convert_field_0:
+    add %reg7 %reg7 %reg0
+
+  ; print score
+  ldc %reg1 0x20 ; space 3x
+  st %reg0 %reg1
+  st %reg2 %reg1
+  st %reg2 %reg1
+  st %reg2 %reg1
+
+  st %reg2 %reg4
+  st %reg2 %reg5
+  st %reg2 %reg6
+  st %reg2 %reg7
+
+  ldc %reg1 0x0A ; new line
+  st %reg2 %reg1
+
+  jr print_column_border
