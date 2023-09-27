@@ -372,17 +372,40 @@ process_input:
   jzr calc_right
 ; conditional jump
 
-; reg0 | lock | zero
-; reg1 | lock | column_count
+; reg0 | free
+; reg1 | lock | column_index / row_index
 ; reg2 | free 
 ; reg3 | lock | direction
 calc_up:
-  jr calc_end
-; -> calc_end
+  ldc %reg2 0x4 ; size of column
+  ldc %reg0 0x1410 ; start address for column 0 : row 0
+  add %reg0 %reg1 %reg0 ; add column_index
 
-calc_down:
-  jr calc_end
-; -> calc_end
+  ; load each column to reg4-reg7 and update their value
+  ld %reg4 %reg0 ; load [column 0 : row row_index] from RAM
+  add %reg0 %reg0 %reg2 ; column++
+  ld %reg5 %reg0 ; load [column 1 : row row_index] from RAM
+  add %reg0 %reg0 %reg2 ; column++
+  ld %reg6 %reg0 ; load [column 2 : row row_index] from RAM
+  add %reg0 %reg0 %reg2 ; column++
+  ld %reg7 %reg0 ; load [column 3 : row row_index] from RAM
+  jr calc_it_start
+
+calc_down:  
+  ldc %reg2 0x4 ; size of column
+  ldc %reg0 0x141c ; start address for column 3 : row 0
+  add %reg0 %reg0 %reg1 ; add column_index
+
+  ; load each column to reg4-reg7 and update their value
+  ld %reg4 %reg0 ; load [column 0 : row row_index] from RAM
+  sub %reg0 %reg0 %reg2 ; column--
+  ld %reg5 %reg0 ; load [column 1 : row row_index] from RAM
+  sub %reg0 %reg0 %reg2 ; column--
+  ld %reg6 %reg0 ; load [column 2 : row row_index] from RAM
+  sub %reg0 %reg0 %reg2 ; column--
+  ld %reg7 %reg0 ; load [column 3 : row row_index] from RAM
+  jr calc_it_start
+; -> calc_it_start
 
 calc_left:
   ; load each column to reg4-reg7 and update their value
@@ -407,7 +430,7 @@ calc_right:
   ; load each column to reg4-reg7 and update their value
   ldc %reg0 0x4 ; size of row
   mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
-  ldc %reg0 0x1413 ; start address for column 0 : row 0
+  ldc %reg0 0x1413 ; start address for column 0 : row 3
   add %reg0 %reg2 %reg0 ; add base address for field to field address
   ; reg0 contains address for field
 
@@ -422,6 +445,10 @@ calc_right:
   jr calc_it_start
 ; -> calc_it_start
 
+; reg0 | lock | zero
+; reg1 | lock | column_index / row_index
+; reg2 | free 
+; reg3 | lock | direction
 calc_it_start:
   ; update field | iteration 1
   ; reg0 | block | 0
@@ -579,9 +606,34 @@ calc_store:
   jzr calc_store_right
 
 calc_store_up:
+  ldc %reg2 0x4 ; size of column
+  ldc %reg0 0x1410 ; start address for column 0 : row 0
+  add %reg0 %reg1 %reg0 ; add column_index
+
+  ; load each column to reg4-reg7 and update their value
+  st %reg0 %reg4 ; store [column 0 : row row_index] from RAM
+  add %reg0 %reg0 %reg2 ; column++
+  st %reg0 %reg5 ; store [column 1 : row row_index] from RAM
+  add %reg0 %reg0 %reg2 ; column++
+  st %reg0 %reg6 ; store [column 2 : row row_index] from RAM
+  add %reg0 %reg0 %reg2 ; column++
+  st %reg0 %reg7 ; store [column 3 : row row_index] from RAM
   jr calc_check_repeat
 
 calc_store_down:
+  ldc %reg2 0x4 ; size of column
+  ldc %reg0 0x141c ; start address for column 3 : row 0
+  add %reg0 %reg1 %reg0 ; add column_index
+
+  ; load each column to reg4-reg7 and update their value
+  st %reg0 %reg4 ; store [column 0 : row row_index] from RAM
+  sub %reg0 %reg0 %reg2 ; column--
+  st %reg0 %reg5 ; store [column 1 : row row_index] from RAM
+  sub %reg0 %reg0 %reg2 ; column--
+  st %reg0 %reg6 ; store [column 2 : row row_index] from RAM
+  sub %reg0 %reg0 %reg2 ; column--
+  st %reg0 %reg7 ; store [column 3 : row row_index] from RAM
+
   jr calc_check_repeat
 
 calc_store_left:
