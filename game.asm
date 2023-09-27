@@ -46,14 +46,23 @@ reset_game_state:
   jnzr reset_game_state
 
   ; test purpose
-  ldc %reg0 0x1410
   ldc %reg1 0x02
+  ldc %reg0 0x1410
   st %reg0 %reg1
 
   ldc %reg0 0x1411
-  ldc %reg1 0x02
   st %reg0 %reg1
 
+  ldc %reg0 0x1415
+  st %reg0 %reg1
+    
+  ldc %reg0 0x1416
+  st %reg0 %reg1
+
+  ldc %reg0 0x141a
+  st %reg0 %reg1
+  ldc %reg0 0x141b
+  st %reg0 %reg1
 
   jr print_state
 ; -> print_state
@@ -340,6 +349,8 @@ process_input:
   tst %reg4 %reg3
   jzr get_input
 
+  ldc %reg1 0x00 ; column_index / row_index
+
   ; up
   ldc %reg4 0x01
   tst %reg4 %reg3
@@ -375,11 +386,6 @@ calc_down:
 
 calc_left:
   ; load each column to reg4-reg7 and update their value
-  ; load column to field
-  ; reg1 | block | column_index
-  ldc %reg1 0x00 ; column_index
-
-calc_left_it_start:
   ldc %reg0 0x4 ; size of row
   mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
   ldc %reg0 0x1410 ; start address for column 0 : row 0
@@ -393,13 +399,36 @@ calc_left_it_start:
   ld %reg6 %reg0 ; load [column column_index : row 2] from RAM
   inc %reg0
   ld %reg7 %reg0 ; load [column column_index : row 3] from RAM
+  
+  jr calc_it_start
+; -> calc_it_start
 
+calc_right:
+  ; load each column to reg4-reg7 and update their value
+  ldc %reg0 0x4 ; size of row
+  mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
+  ldc %reg0 0x1413 ; start address for column 0 : row 0
+  add %reg0 %reg2 %reg0 ; add base address for field to field address
+  ; reg0 contains address for field
+
+  ld %reg4 %reg0 ; load [column column_index : row 3] from RAM
+  dec %reg0
+  ld %reg5 %reg0 ; load [column column_index : row 2] from RAM
+  dec %reg0
+  ld %reg6 %reg0 ; load [column column_index : row 1] from RAM
+  dec %reg0
+  ld %reg7 %reg0 ; load [column column_index : row 0] from RAM
+  
+  jr calc_it_start
+; -> calc_it_start
+
+calc_it_start:
+  ; update field | iteration 1
   ; reg0 | block | 0
   ldc %reg0 0x00
+  jr calc_it1_tst0
 
-calc_left_it1:
-  ; update field | iteration 1
-calc_left_it1_tst0:
+calc_it1_tst0:
   ; if column is empty, jump to next column
   ldc %reg2 0x00
   or %reg2 %reg4 %reg5
@@ -407,20 +436,20 @@ calc_left_it1_tst0:
   or %reg2 %reg2 %reg7
 
   tst %reg2 %reg0
-  jzr calc_left_it_end
-  jr calc_left_it1_tst_shift
+  jzr calc_it_end
+  jr calc_it1_tst_shift
 ; -> calc_let_it_end | if column all zeros
-; -> calc_left_it1_tst_shift | else
+; -> calc_it1_tst_shift | else
 
-calc_left_it1_tst_shift:
+calc_it1_tst_shift:
   ; if %reg4 != 0, jump to merge
   tst %reg4 %reg0 ; %reg4 == 0?
-  jnzr calc_left_it1_merge
-  jr calc_left_it1_shift
-; -> calc_left_it1_shift | if %reg4 == 0
-; -> calc_left_it1_merge | else
+  jnzr calc_it1_merge
+  jr calc_it1_shift
+; -> calc_it1_shift | if %reg4 == 0
+; -> calc_it1_merge | else
 
-calc_left_it1_shift:
+calc_it1_shift:
   ; if %reg4 == 0 -> column=column<<1
   mov %reg4 %reg5 ; %reg4 <- reg5
   mov %reg5 %reg6 ; %reg5 <- reg6
@@ -428,108 +457,134 @@ calc_left_it1_shift:
   mov %reg7 %reg0 ; %reg7 <- 0
 
   ; test again
-  jr calc_left_it1_tst_shift
-; -> calc_left_it1_tst_shift
+  jr calc_it1_tst_shift
+; -> calc_it1_tst_shift
 
-calc_left_it1_merge:
+calc_it1_merge:
   ; reg4 == reg5? -> reg4 = reg4 + reg5, reg5 = reg6, reg6 = reg7, reg7 = 0
   and %reg2 %reg4 %reg5 ; reg2 = 0 if reg4 != reg5
   tst %reg2 %reg0 ;
-  jzr calc_left_it2 ; if reg4 != reg5, jump to iteration 2
+  jzr calc_it2 ; if reg4 != reg5, jump to iteration 2
 
   ldc %reg2 0x01 
   shl %reg4 %reg4 %reg2 ; reg4 = reg4 * 2
   mov %reg5 %reg6 ; %reg5 <- reg6
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
-  jr calc_left_it2
-; -> calc_left_it2
+  jr calc_it2
+; -> calc_it2
 
-calc_left_it2:
+calc_it2:
   ; update field | iteration 2
-calc_left_it2_tst0:
+calc_it2_tst0:
   ; if rest of column is empty, jump to next column
   ldc %reg2 0x00
   or %reg2 %reg5 %reg6
   or %reg2 %reg2 %reg7
 
   tst %reg2 %reg0
-  jzr calc_left_it_end
-  jr calc_left_it2_tst_shift
+  jzr calc_it_end
+  jr calc_it2_tst_shift
 
-calc_left_it2_tst_shift:
+calc_it2_tst_shift:
   ; if %reg5 != 0, jump to merge
   tst %reg5 %reg0 ; %reg5 == 0?
-  jnzr calc_left_it2_merge
-  jr calc_left_it2_shift
-; -> calc_left_it2_shift | if %reg5 == 0
-; -> calc_left_it2_merge | else
+  jnzr calc_it2_merge
+  jr calc_it2_shift
+; -> calc_it2_shift | if %reg5 == 0
+; -> calc_it2_merge | else
 
-calc_left_it2_shift:
+calc_it2_shift:
 ; if %reg5 == 0 -> column=column<<1
   mov %reg5 %reg6 ; %reg5 <- reg6
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
 
   ; test again
-  jr calc_left_it2_tst_shift
-; -> calc_left_it2_tst_shift
+  jr calc_it2_tst_shift
+; -> calc_it2_tst_shift
 
-calc_left_it2_merge:
+calc_it2_merge:
   ; reg5 == reg6? -> reg5 = reg5 + reg6, reg6 = reg7, reg7 = 0
   and %reg2 %reg5 %reg6
   tst %reg2 %reg0
-  jzr calc_left_it3 ; if reg5 != reg6, jump to iteration 3
+  jzr calc_it3 ; if reg5 != reg6, jump to iteration 3
 
   ldc %reg2 0x01 
   shl %reg5 %reg5 %reg2 ; reg5 = reg5 * 2
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
 
-  jr calc_left_it3
-; -> calc_left_it3
+  jr calc_it3
+; -> calc_it3
 
-calc_left_it3:
+calc_it3:
   ; update field | iteration 3
-calc_left_it3_tst0:
+calc_it3_tst0:
   ; if rest of column is empty, jump to next column
   ldc %reg2 0x00
   or %reg2 %reg6 %reg7
 
   tst %reg2 %reg0
-  jzr calc_left_it_end
-  jr calc_left_it3_tst_shift
+  jzr calc_it_end
+  jr calc_it3_tst_shift
 
-calc_left_it3_tst_shift:
+calc_it3_tst_shift:
   ; if %reg6 != 0, jump to merge
   tst %reg6 %reg0 ; %reg6 == 0?
-  jnzr calc_left_it3_merge
-  jr calc_left_it3_shift
-; -> calc_left_it3_shift | if %reg6 == 0
-; -> calc_left_it3_merge | else
+  jnzr calc_it3_merge
+  jr calc_it3_shift
+; -> calc_it3_shift | if %reg6 == 0
+; -> calc_it3_merge | else
 
-calc_left_it3_shift:
+calc_it3_shift:
 ; if %reg6 == 0 -> column=column<<1
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
 
-  jr calc_left_it_end
-; -> calc_left_it_end
+  jr calc_it_end
+; -> calc_it_end
 
-calc_left_it3_merge:
+calc_it3_merge:
   ; reg6 == reg7? -> reg6 = reg6 + reg7, reg7 = 0
   and %reg2 %reg6 %reg7
   tst %reg2 %reg0
-  jzr calc_left_it_end ; if reg6 != reg7, jump to end
+  jzr calc_it_end ; if reg6 != reg7, jump to end
 
   ldc %reg2 0x01 
   shl %reg6 %reg6 %reg2 ; reg6 = reg6 * 2
   mov %reg7 %reg0 ; %reg7 <- 0
 
-  jr calc_left_it_end
-; -> calc_left_it_end
+  jr calc_it_end
+; -> calc_it_end
 
-calc_left_it_end:
+calc_it_end:
+  jr calc_store
+
+calc_store:
+  ldc %reg2 0x01
+  tst %reg3 %reg2
+  jzr calc_store_up
+
+  ldc %reg2 0x02
+  tst %reg3 %reg2
+  jzr calc_store_down
+
+  ldc %reg2 0x03
+  tst %reg3 %reg2
+  jzr calc_store_left
+
+  ldc %reg2 0x04
+  tst %reg3 %reg2
+  jzr calc_store_right
+
+calc_store_up:
+  jr calc_check_repeat
+
+calc_store_down:
+  jr calc_check_repeat
+
+calc_store_left:
   ; store column back to RAM
   ldc %reg0 0x4 ; size of row
   mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
@@ -545,16 +600,52 @@ calc_left_it_end:
   inc %reg0
   st %reg0 %reg7 ; store [column column_index : row 3] to RAM 
 
+  jr calc_check_repeat
+
+calc_store_right:
+  ; store column back to RAM
+  ldc %reg0 0x4 ; size of row
+  mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
+  ldc %reg0 0x1413 ; start address for column 0 : row 0
+  add %reg0 %reg2 %reg0 ; add base address for field to field address
+  ; reg0 contains address for field
+
+  st %reg0 %reg4 ; store [column column_index : row 3] to RAM
+  dec %reg0
+  st %reg0 %reg5 ; store [column column_index : row 2] to RAM
+  dec %reg0
+  st %reg0 %reg6 ; store [column column_index : row 1] to RAM
+  dec %reg0
+  st %reg0 %reg7 ; store [column column_index : row 0] to RAM 
+  jr calc_check_repeat
+
+calc_repeat:
+  ldc %reg2 0x01
+  tst %reg3 %reg2
+  jzr calc_up
+
+  ldc %reg2 0x02
+  tst %reg3 %reg2
+  jzr calc_down
+
+  ldc %reg2 0x03
+  tst %reg3 %reg2
+  jzr calc_left
+
+  ldc %reg2 0x04
+  tst %reg3 %reg2
+  jzr calc_right
+; conditional jump for direction
+; -> calc_up
+
+calc_check_repeat:
   inc %reg1
   ldc %reg0 0x04
   tst %reg1 %reg0
-  jnzr calc_left_it_start ; jump if column parsed so far < 4
+  jnzr calc_repeat ; jump if column parsed so far < 4
 
   jr calc_end
-; -> calc_end
-
-calc_right:
-  jr calc_end
+; -> calc_repeat | if column parsed so far < 4
 ; -> calc_end
 
 calc_end:
