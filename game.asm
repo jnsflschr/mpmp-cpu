@@ -44,6 +44,17 @@ reset_game_state:
 
   tst %reg0 %reg2
   jnzr reset_game_state
+
+  ; test purpose
+  ldc %reg0 0x1410
+  ldc %reg1 0x02
+  st %reg0 %reg1
+
+  ldc %reg0 0x1411
+  ldc %reg1 0x02
+  st %reg0 %reg1
+
+
   jr print_state
 ; -> print_state
 
@@ -255,7 +266,6 @@ print_field:
   jr print_column_border
 ; -> print_column_border
 
-
 get_input:
   ldc %reg0 0x8002 ; address for keyboard buffer
   ldc %reg2 0x00 ; for zero check
@@ -333,24 +343,28 @@ process_input:
   ; up
   ldc %reg4 0x01
   tst %reg4 %reg3
-  jnzr calc_up
+  jzr calc_up
 
   ; down
   ldc %reg4 0x02
   tst %reg4 %reg3
-  jnzr calc_down
+  jzr calc_down
 
   ; left
   ldc %reg4 0x03
   tst %reg4 %reg3
-  jnzr calc_left
+  jzr calc_left
 
   ; right
   ldc %reg4 0x04
   tst %reg4 %reg3
-  jnzr calc_right
+  jzr calc_right
 ; conditional jump
 
+; reg0 | lock | zero
+; reg1 | lock | column_count
+; reg2 | free 
+; reg3 | lock | direction
 calc_up:
   jr calc_end
 ; -> calc_end
@@ -360,6 +374,182 @@ calc_down:
 ; -> calc_end
 
 calc_left:
+  ; load each column to reg4-reg7 and update their value
+  ; load column to field
+  ; reg1 | block | column_index
+  ldc %reg1 0x00 ; column_index
+
+calc_left_it_start:
+  ldc %reg0 0x4 ; size of row
+  mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
+  ldc %reg0 0x1410 ; start address for column 0 : row 0
+  add %reg0 %reg2 %reg0 ; add base address for field to field address
+  ; reg0 contains address for field
+
+  ld %reg4 %reg0 ; load [column column_index : row 0] from RAM
+  inc %reg0
+  ld %reg5 %reg0 ; load [column column_index : row 1] from RAM
+  inc %reg0
+  ld %reg6 %reg0 ; load [column column_index : row 2] from RAM
+  inc %reg0
+  ld %reg7 %reg0 ; load [column column_index : row 3] from RAM
+
+  ; reg0 | block | 0
+  ldc %reg0 0x00
+
+calc_left_it1:
+  ; update field | iteration 1
+calc_left_it1_tst0:
+  ; if column is empty, jump to next column
+  ldc %reg2 0x00
+  or %reg2 %reg4 %reg5
+  or %reg2 %reg2 %reg6
+  or %reg2 %reg2 %reg7
+
+  tst %reg2 %reg0
+  jzr calc_left_it_end
+  jr calc_left_it1_tst_shift
+; -> calc_let_it_end | if column all zeros
+; -> calc_left_it1_tst_shift | else
+
+calc_left_it1_tst_shift:
+  ; if %reg4 != 0, jump to merge
+  tst %reg4 %reg0 ; %reg4 == 0?
+  jnzr calc_left_it1_merge
+  jr calc_left_it1_shift
+; -> calc_left_it1_shift | if %reg4 == 0
+; -> calc_left_it1_merge | else
+
+calc_left_it1_shift:
+  ; if %reg4 == 0 -> column=column<<1
+  mov %reg4 %reg5 ; %reg4 <- reg5
+  mov %reg5 %reg6 ; %reg5 <- reg6
+  mov %reg6 %reg7 ; %reg6 <- reg7
+  mov %reg7 %reg0 ; %reg7 <- 0
+
+  ; test again
+  jr calc_left_it1_tst_shift
+; -> calc_left_it1_tst_shift
+
+calc_left_it1_merge:
+  ; reg4 == reg5? -> reg4 = reg4 + reg5, reg5 = reg6, reg6 = reg7, reg7 = 0
+  and %reg2 %reg4 %reg5 ; reg2 = 0 if reg4 != reg5
+  tst %reg2 %reg0 ;
+  jzr calc_left_it2 ; if reg4 != reg5, jump to iteration 2
+
+  ldc %reg2 0x01 
+  shl %reg4 %reg4 %reg2 ; reg4 = reg4 * 2
+  mov %reg5 %reg6 ; %reg5 <- reg6
+  mov %reg6 %reg7 ; %reg6 <- reg7
+  mov %reg7 %reg0 ; %reg7 <- 0
+  jr calc_left_it2
+; -> calc_left_it2
+
+calc_left_it2:
+  ; update field | iteration 2
+calc_left_it2_tst0:
+  ; if rest of column is empty, jump to next column
+  ldc %reg2 0x00
+  or %reg2 %reg5 %reg6
+  or %reg2 %reg2 %reg7
+
+  tst %reg2 %reg0
+  jzr calc_left_it_end
+  jr calc_left_it2_tst_shift
+
+calc_left_it2_tst_shift:
+  ; if %reg5 != 0, jump to merge
+  tst %reg5 %reg0 ; %reg5 == 0?
+  jnzr calc_left_it2_merge
+  jr calc_left_it2_shift
+; -> calc_left_it2_shift | if %reg5 == 0
+; -> calc_left_it2_merge | else
+
+calc_left_it2_shift:
+; if %reg5 == 0 -> column=column<<1
+  mov %reg5 %reg6 ; %reg5 <- reg6
+  mov %reg6 %reg7 ; %reg6 <- reg7
+  mov %reg7 %reg0 ; %reg7 <- 0
+
+  ; test again
+  jr calc_left_it2_tst_shift
+; -> calc_left_it2_tst_shift
+
+calc_left_it2_merge:
+  ; reg5 == reg6? -> reg5 = reg5 + reg6, reg6 = reg7, reg7 = 0
+  and %reg2 %reg5 %reg6
+  tst %reg2 %reg0
+  jzr calc_left_it3 ; if reg5 != reg6, jump to iteration 3
+
+  ldc %reg2 0x01 
+  shl %reg5 %reg5 %reg2 ; reg5 = reg5 * 2
+  mov %reg6 %reg7 ; %reg6 <- reg7
+  mov %reg7 %reg0 ; %reg7 <- 0
+
+  jr calc_left_it3
+; -> calc_left_it3
+
+calc_left_it3:
+  ; update field | iteration 3
+calc_left_it3_tst0:
+  ; if rest of column is empty, jump to next column
+  ldc %reg2 0x00
+  or %reg2 %reg6 %reg7
+
+  tst %reg2 %reg0
+  jzr calc_left_it_end
+  jr calc_left_it3_tst_shift
+
+calc_left_it3_tst_shift:
+  ; if %reg6 != 0, jump to merge
+  tst %reg6 %reg0 ; %reg6 == 0?
+  jnzr calc_left_it3_merge
+  jr calc_left_it3_shift
+; -> calc_left_it3_shift | if %reg6 == 0
+; -> calc_left_it3_merge | else
+
+calc_left_it3_shift:
+; if %reg6 == 0 -> column=column<<1
+  mov %reg6 %reg7 ; %reg6 <- reg7
+  mov %reg7 %reg0 ; %reg7 <- 0
+
+  jr calc_left_it_end
+; -> calc_left_it_end
+
+calc_left_it3_merge:
+  ; reg6 == reg7? -> reg6 = reg6 + reg7, reg7 = 0
+  and %reg2 %reg6 %reg7
+  tst %reg2 %reg0
+  jzr calc_left_it_end ; if reg6 != reg7, jump to end
+
+  ldc %reg2 0x01 
+  shl %reg6 %reg6 %reg2 ; reg6 = reg6 * 2
+  mov %reg7 %reg0 ; %reg7 <- 0
+
+  jr calc_left_it_end
+; -> calc_left_it_end
+
+calc_left_it_end:
+  ; store column back to RAM
+  ldc %reg0 0x4 ; size of row
+  mul %reg2 %reg1 %reg0 ; multiply column parsed so far by size of row
+  ldc %reg0 0x1410 ; start address for column 0 : row 0
+  add %reg0 %reg2 %reg0 ; add base address for field to field address
+  ; reg0 contains address for field
+
+  st %reg0 %reg4 ; store [column column_index : row 0] to RAM
+  inc %reg0
+  st %reg0 %reg5 ; store [column column_index : row 1] to RAM
+  inc %reg0
+  st %reg0 %reg6 ; store [column column_index : row 2] to RAM
+  inc %reg0
+  st %reg0 %reg7 ; store [column column_index : row 3] to RAM 
+
+  inc %reg1
+  ldc %reg0 0x04
+  tst %reg1 %reg0
+  jnzr calc_left_it_start ; jump if column parsed so far < 4
+
   jr calc_end
 ; -> calc_end
 
@@ -382,11 +572,9 @@ calc_end:
 print_score_title:
   ldc %reg0 0x8000 ; address for writing to the screen
 
-  ldc %reg1 0x20 ; space
+  ldc %reg1 0x20 ; space 3x
   st %reg0 %reg1
-  ldc %reg1 0x20 ; space
   st %reg0 %reg1
-  ldc %reg1 0x20 ; space
   st %reg0 %reg1
 
   ldc %reg1 0x53 ; write S
@@ -404,9 +592,8 @@ print_score_title:
   ldc %reg1 0x65 ; write e
   st %reg0 %reg1
 
-  ldc %reg1 0x20 ; space
+  ldc %reg1 0x20 ; space 2x
   st %reg0 %reg1
-  ldc %reg1 0x20 ; space
   st %reg0 %reg1
 
   ldc %reg1 0x0A ; new line
