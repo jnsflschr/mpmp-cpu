@@ -41,17 +41,6 @@ init_game:
   ldc %reg0 0x1404 ; address for score
   st %reg0 %reg1
 
-
-  ; generate new seed
-  ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
-  ldc %reg0 0x1407 ; address for randomness seed
-  ldc %reg4 25173 ; seed
-  ldc %reg2 13849 ; seed
-  ld %reg3 %reg0 ; load seed from RAM
-  mul %reg3 %reg3 %reg4 ; seed = seed * 25173
-  add %reg3 %reg3 %reg2 ; seed = seed + 13849
-  st %reg0 %reg3 ; store seed back to RAM
-
   ldc %reg0 0x1410 ; address for field min
   ldc %reg2 0x1420 ; address for field max+1
   jr reset_game_state
@@ -71,27 +60,72 @@ init_game_end:
   ldc %reg0 0x0001 ; address for game state
   st %reg0 %reg1 ; store game state to RAM
 
+  ; generate new seed
+  ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
+  ldc %reg0 0x1407 ; address for randomness seed
+  ldc %reg4 25173 ; seed
+  ldc %reg2 13849 ; seed
+  ld %reg3 %reg0 ; load seed from RAM
+  mul %reg3 %reg3 %reg4 ; seed = seed * 25173
+  add %reg3 %reg3 %reg2 ; seed = seed + 13849
+  st %reg0 %reg3 ; store seed back to RAM
+
+
+  ldc %reg7 0x00
+init_add_number_start:
+  mov %reg1 %reg3 ; random number
+  ldc %reg6 0xF ; mask
+  and %reg1 %reg6 %reg1 ; mask random number
+
+  ldc %reg0 0x1410
+  
+init_add_number_it:
+  inc %reg0 ; increase address
+  or %reg0 %reg3 %reg0 ; add min address
+  and %reg0 %reg4 %reg0 ; mask max address
+
+  ld %reg6 %reg0
+
+  tst %reg2 %reg6 ; test if field is empty
+  jnzr init_add_number_it
+
+  dec %reg1 ; decrease loop counter
+
+  tst %reg2 %reg1 ; test if loop counter is 0 
+  jzr init_add_number_end
+  jr init_add_number_it
+
+init_add_number_end:
+  ldc %reg1 0x2
+  st %reg0 %reg1
+  inc %reg7
+  tst %reg7 %reg1
+  jnzr init_add_number_start
+  jr print_state
+; -> print_state
+
+
   ; test purpose
   ldc %reg0 0x1410
   ldc %reg1 0x02
 
-; Test Calc
-  st %reg0 %reg1
+; ; Test Calc
+;   st %reg0 %reg1
   
-  ldc %reg0 0x1411
-  st %reg0 %reg1
+;   ldc %reg0 0x1411
+;   st %reg0 %reg1
 
-  ldc %reg0 0x1415
-  st %reg0 %reg1
+;   ldc %reg0 0x1415
+;   st %reg0 %reg1
     
-  ldc %reg0 0x1416
-  st %reg0 %reg1
+;   ldc %reg0 0x1416
+;   st %reg0 %reg1
 
-  ldc %reg0 0x141a
-  st %reg0 %reg1
+;   ldc %reg0 0x141a
+;   st %reg0 %reg1
 
-  ldc %reg0 0x141b
-  st %reg0 %reg1
+;   ldc %reg0 0x141b
+;   st %reg0 %reg1
 
 ; Test Lose
   ; ldc %reg2 0x01
