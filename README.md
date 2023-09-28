@@ -21,7 +21,7 @@ See https://github.com/bubba2k/mpmp-emu
 
 ## Run
 1. Open `CPU_JF_latest.circ` in Logisim Evolution
-2. Load `game.hex` in Microprogram ROM
+2. Load `game.hex` in PRGM_MEM ROM
 3. Start CPU *(cmd+k)*
 
 4. (optional) set clock frequence to min 1kHz
