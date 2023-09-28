@@ -13,6 +13,7 @@
 ; 0x1405 : user input
 ; 0x1406 : user input parsed (0x00: none, 0x01 : up, 0x02 : down, 0x03 : left, 0x04 : right)
 ; 0x1407 : randomness seed
+; 0x0001 : game state (0x01 : init, 0x02 : running, 0x04 : game over)
 
 ; 0x1410 - 0x1413 : column 0 : row 0 - 3
 ; 0x1414 - 0x1417 : column 1 : row 0 - 3
@@ -33,6 +34,10 @@
 
 init_game:
   ldc %reg1 0x00
+
+  ldc %reg0 0x0001 ; address for game state 
+  st %reg0 %reg0 ; store game state (init) to RAM
+
   ldc %reg0 0x1404 ; address for score
   st %reg0 %reg1
 
@@ -47,25 +52,81 @@ reset_game_state:
 
   tst %reg0 %reg2
   jnzr reset_game_state
+  jr init_game_end
+; -> init_game_end
+
+init_game_end:
+  ldc %reg1 0x02 ; game state running
+  ldc %reg0 0x0001 ; address for game state
+  st %reg0 %reg1 ; store game state to RAM
 
   ; test purpose
-  ldc %reg1 0x02
   ldc %reg0 0x1410
-  st %reg0 %reg1
+  ldc %reg1 0x01
+  ; st %reg0 %reg1
+  
+  ; ldc %reg0 0x1411
+  ; st %reg0 %reg1
 
-  ldc %reg0 0x1411
-  st %reg0 %reg1
-
-  ldc %reg0 0x1415
-  st %reg0 %reg1
+  ; ldc %reg0 0x1415
+  ; st %reg0 %reg1
     
-  ldc %reg0 0x1416
+  ; ldc %reg0 0x1416
+  ; st %reg0 %reg1
+
+  ; ldc %reg0 0x141a
+  ; st %reg0 %reg1
+  ; ldc %reg0 0x141b
+  ; st %reg0 %reg1
+
+  ldc %reg2 0x01
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shr %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shr %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shr %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shl %reg1 %reg1 %reg2
+  st %reg0 %reg1
+  inc %reg0
+  shr %reg1 %reg1 %reg2
   st %reg0 %reg1
 
-  ldc %reg0 0x141a
-  st %reg0 %reg1
-  ldc %reg0 0x141b
-  st %reg0 %reg1
 
   jr print_state
 ; -> print_state
@@ -542,7 +603,7 @@ calc_it2_tst_shift:
 ; -> calc_it2_merge | else
 
 calc_it2_shift:
-; if %reg5 == 0 -> column=column<<1
+  ; if %reg5 == 0 -> column=column<<1
   mov %reg5 %reg6 ; %reg5 <- reg6
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
@@ -593,7 +654,7 @@ calc_it3_tst_shift:
 ; -> calc_it3_merge | else
 
 calc_it3_shift:
-; if %reg6 == 0 -> column=column<<1
+  ; if %reg6 == 0 -> column=column<<1
   mov %reg6 %reg7 ; %reg6 <- reg7
   mov %reg7 %reg0 ; %reg7 <- 0
 
@@ -744,44 +805,71 @@ calc_end:
   ldc %reg0 0x8003 ; address for writing to the screen
   ldc %reg2 0x0A ; new line
   st %reg0 %reg2
-  jr add_zero ; if keyboard buffer is not empty, print state
-; -> add_zero
+  jr add_number ; if keyboard buffer is not empty, print state
+; -> add_number
 
-add_zero:
+add_number:
   ; a: constant with remaining fields
   ; b: random number between 0 and a
   ; b = rand
   ; b = b AND 15
   ; b = b - 16
   ; b = 
-  ldc %reg0 0x1410
-  ldc %reg1 0x5
-  ldc %reg2 0x0
+
+  ldc %reg0 0x1410 ; address for field parsing state
+  ldc %reg7 0x00 ; empty fields
+  ldc %reg2 0x0 ; zero ref
   ldc %reg3 0x1410 ; min adress
   ldc %reg4 0x141F ; max adress
 
-add_zero_next:
-  ld %reg3 %reg0
+  ldc %reg1 0x1420
 
+  ; count empty fields
+add_number_count:
+  or %reg6 %reg0 %reg3 ; add min address
+  and %reg6 %reg6 %reg4 ; mask max address
+  tst %reg6 %reg0 ; test if field is in range
+  jnzr add_number_it_start
+
+  ld %reg5 %reg0
   inc %reg0 ; increase address
-  or %reg0 %reg0 %reg3 ; add min address
-  and %reg0 %reg0 %reg4 ; mask max address
 
-  tst %reg2 %reg3 ; test if field is empty
-  jnzr add_zero_next
+  tst %reg5 %reg2
+  jnzr add_number_count
+  inc %reg7
+  jr add_number_count
+
+add_number_it_start:
+  ldc %reg0 0x1410
+  ldc %reg1 0x5 ; random number
+  jr check_lose
+
+check_lose:
+  tst %reg2 %reg7
+  jzr lose
+  jr add_number_it
+
+add_number_it:
+  inc %reg0 ; increase address
+  or %reg0 %reg3 %reg0 ; add min address
+  and %reg0 %reg4 %reg0 ; mask max address
+
+  ld %reg6 %reg0
+
+  tst %reg2 %reg6 ; test if field is empty
+  jnzr add_number_it
 
   dec %reg1 ; decrease loop counter
 
   tst %reg2 %reg1 ; test if loop counter is 0 
-  jzr add_zero_end
-  jr add_zero_next
+  jzr add_number_end
+  jr add_number_it
 
-add_zero_end:
+add_number_end:
   ldc %reg1 0x2
   st %reg0 %reg1
   jr print_state
 ; -> print_state
-
 
 print_score_title:
   ldc %reg0 0x8000 ; address for writing to the screen
@@ -809,6 +897,12 @@ print_score_title:
   ldc %reg1 0x20 ; space 2x
   st %reg0 %reg1
   st %reg0 %reg1
+
+  ldc %reg1 0x0001 ; address for game state
+  ld %reg2 %reg1 ; load game state from RAM
+  ldc %reg1 0x0004 ; game state for lose
+  tst %reg1 %reg2
+  jzr print_score
 
   ldc %reg1 0x0A ; new line
   st %reg0 %reg1
@@ -907,4 +1001,61 @@ score_convert_field_0:
   ldc %reg1 0x0A ; new line
   st %reg2 %reg1
 
+  ldc %reg1 0x0001 ; address for game state
+  ld %reg2 %reg1 ; load game state from RAM
+  ldc %reg1 0x0004 ; game state for lose
+  tst %reg1 %reg2
+  jzr end_game
   jr print_column_border
+
+lose:
+  ldc %reg0 0x0001 ;
+  ldc %reg1 0x4 ; game state for lose
+  st %reg0 %reg1
+  jr print_lose
+; -> print_lose
+
+print_lose:
+  ; print "You lose \nScore: "
+  ldc %reg0 0x8000 ; address for writing to the screen
+
+  ldc %reg2 0x20 ; space
+  ldc %reg3 0x0A ; new line
+  st %reg3 %reg1
+
+  st %reg0 %reg2
+  st %reg0 %reg2
+  st %reg0 %reg2
+  st %reg0 %reg2
+  st %reg0 %reg2
+  st %reg0 %reg2
+
+  ldc %reg1 0x59 ; write Y
+  st %reg0 %reg1
+
+  ldc %reg1 0x6f ; write o
+  st %reg0 %reg1
+
+  ldc %reg1 0x75 ; write u
+  st %reg0 %reg1
+
+  st %reg0 %reg2 ; write space
+
+  ldc %reg1 0x4C ; write L
+  st %reg0 %reg1
+
+  ldc %reg1 0x6f ; write o
+  st %reg0 %reg1
+
+  ldc %reg1 0x73 ; write s
+  st %reg0 %reg1
+
+  ldc %reg1 0x65 ; write e
+  st %reg0 %reg1
+
+  st %reg0 %reg3
+
+  jr print_score_title
+
+end_game:
+  hlt
