@@ -1,19 +1,25 @@
-# 16-Bit CPU in Logisim Evolution
+# 16-Bit CPU in Logisim-evolution
 Mikroprozessoren und Mikroprogrammierung 2023 @INB21 HTWK Leipzig
 
-## assemble
+## Prerequisites
+- Logisim-evolution
+- Assembler: https://gitlab.com/moseschmiedel/masm
+- Emulator: https://github.com/bubba2k/mpmp-emu
+
+
+## Assemble
 See https://gitlab.com/moseschmiedel/masm 
 ```
 ./assemble.sh
 ```
 
-## emulate
+## Emulate
 See https://github.com/bubba2k/mpmp-emu
 ```
 ./emulate.sh game.hex
 ```
 
-## run
+## Run
 1. Open `CPU_JF_latest.circ` in Logisim Evolution
 2. Load `game.hex` in Microprogram ROM
 3. Start CPU *(cmd+k)*
