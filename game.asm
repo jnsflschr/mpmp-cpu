@@ -42,15 +42,15 @@ init_game:
   st %reg0 %reg1
 
 
-  ; ; generate new seed
-  ; ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
-  ; ldc %reg0 0x1407 ; address for randomness seed
-  ; ldc %reg1 25173 ; seed
-  ; ldc %reg2 13849 ; seed
-  ; ld %reg3 %reg0 ; load seed from RAM
-  ; mul %reg3 %reg3 %reg1 ; seed = seed * 25173
-  ; add %reg3 %reg3 %reg2 ; seed = seed + 13849
-  ; st %reg0 %reg3 ; store seed back to RAM
+  ; generate new seed
+  ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
+  ldc %reg0 0x1407 ; address for randomness seed
+  ldc %reg4 25173 ; seed
+  ldc %reg2 13849 ; seed
+  ld %reg3 %reg0 ; load seed from RAM
+  mul %reg3 %reg3 %reg4 ; seed = seed * 25173
+  add %reg3 %reg3 %reg2 ; seed = seed + 13849
+  st %reg0 %reg3 ; store seed back to RAM
 
   ldc %reg0 0x1410 ; address for field min
   ldc %reg2 0x1420 ; address for field max+1
@@ -871,12 +871,12 @@ add_number_count:
   jr add_number_count
 
 add_number_it_start:
-  ; ; load seed
-  ; ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
-  ; ldc %reg0 0x1407 ; address for randomness seed
-  ; ld %reg1 %reg0 ; random number
-  ; ldc %reg6 0xF ; mask
-  ; and %reg1 %reg6 %reg1 ; mask random number
+  ; load seed
+  ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
+  ldc %reg0 0x1407 ; address for randomness seed
+  ld %reg1 %reg0 ; random number
+  ldc %reg6 0xF ; mask
+  and %reg1 %reg6 %reg1 ; mask random number
 
   ldc %reg0 0x1410
 
