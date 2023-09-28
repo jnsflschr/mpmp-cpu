@@ -62,70 +62,74 @@ init_game_end:
 
   ; test purpose
   ldc %reg0 0x1410
-  ldc %reg1 0x01
-  ; st %reg0 %reg1
+  ldc %reg1 0x02
+
+; Test Calc
+  st %reg0 %reg1
   
-  ; ldc %reg0 0x1411
-  ; st %reg0 %reg1
+  ldc %reg0 0x1411
+  st %reg0 %reg1
 
-  ; ldc %reg0 0x1415
-  ; st %reg0 %reg1
+  ldc %reg0 0x1415
+  st %reg0 %reg1
     
-  ; ldc %reg0 0x1416
-  ; st %reg0 %reg1
+  ldc %reg0 0x1416
+  st %reg0 %reg1
 
-  ; ldc %reg0 0x141a
-  ; st %reg0 %reg1
-  ; ldc %reg0 0x141b
-  ; st %reg0 %reg1
+  ldc %reg0 0x141a
+  st %reg0 %reg1
 
-  ldc %reg2 0x01
+  ldc %reg0 0x141b
   st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shr %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shr %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shr %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shl %reg1 %reg1 %reg2
-  st %reg0 %reg1
-  inc %reg0
-  shr %reg1 %reg1 %reg2
-  st %reg0 %reg1
+
+; Test Lose
+  ; ldc %reg2 0x01
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shr %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shr %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shr %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shl %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
+  ; inc %reg0
+  ; shr %reg1 %reg1 %reg2
+  ; st %reg0 %reg1
 
 
   jr print_state
@@ -302,6 +306,10 @@ convert_field_1:
     mov %reg6 %reg1
 convert_field_0:
     add %reg7 %reg7 %reg0
+    tst %reg0 %reg7
+    jnzr convert_field_end
+    mov %reg7 %reg1
+convert_field_end:
   jr print_field
 ; -> print_field
 
@@ -1033,7 +1041,7 @@ print_lose:
   ldc %reg1 0x59 ; write Y
   st %reg0 %reg1
 
-  ldc %reg1 0x6f ; write o
+  ldc %reg4 0x6f ; write o
   st %reg0 %reg1
 
   ldc %reg1 0x75 ; write u
@@ -1044,8 +1052,7 @@ print_lose:
   ldc %reg1 0x4C ; write L
   st %reg0 %reg1
 
-  ldc %reg1 0x6f ; write o
-  st %reg0 %reg1
+  st %reg0 %reg4 ; write o
 
   ldc %reg1 0x73 ; write s
   st %reg0 %reg1
