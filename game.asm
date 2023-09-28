@@ -41,6 +41,17 @@ init_game:
   ldc %reg0 0x1404 ; address for score
   st %reg0 %reg1
 
+
+  ; ; generate new seed
+  ; ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
+  ; ldc %reg0 0x1407 ; address for randomness seed
+  ; ldc %reg1 25173 ; seed
+  ; ldc %reg2 13849 ; seed
+  ; ld %reg3 %reg0 ; load seed from RAM
+  ; mul %reg3 %reg3 %reg1 ; seed = seed * 25173
+  ; add %reg3 %reg3 %reg2 ; seed = seed + 13849
+  ; st %reg0 %reg3 ; store seed back to RAM
+
   ldc %reg0 0x1410 ; address for field min
   ldc %reg2 0x1420 ; address for field max+1
   jr reset_game_state
@@ -355,13 +366,25 @@ print_field:
   jr print_column_border
 ; -> print_column_border
 
+new_seed:
+  ; generate new seed
+  ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
+  ldc %reg0 0x1407 ; address for randomness seed
+  ldc %reg1 25173 ; seed
+  ldc %reg2 13849 ; seed
+  ld %reg3 %reg0 ; load seed from RAM
+  mul %reg3 %reg3 %reg1 ; seed = seed * 25173
+  add %reg3 %reg3 %reg2 ; seed = seed + 13849
+  st %reg0 %reg3 ; store seed back to RAM
+  jr get_input
+
 get_input:
   ldc %reg0 0x8002 ; address for keyboard buffer
   ldc %reg2 0x00 ; for zero check
   ld %reg1 %reg0 ; load keyboard buffer
 
   tst %reg1 %reg2 ; test if keyboard buffer is empty
-  jzr get_input; if keyboard buffer is empty, wait for input
+  jzr new_seed; if keyboard buffer is empty, wait for input
 
   ldc %reg0 0x7F ; ASCII character mask
   and %reg1 %reg1 %reg0 ; mask keyboard buffer
@@ -848,8 +871,15 @@ add_number_count:
   jr add_number_count
 
 add_number_it_start:
+  ; ; load seed
+  ; ; https://stackoverflow.com/questions/40698309/8086-random-number-generator-not-just-using-the-system-time
+  ; ldc %reg0 0x1407 ; address for randomness seed
+  ; ld %reg1 %reg0 ; random number
+  ; ldc %reg6 0xF ; mask
+  ; and %reg1 %reg6 %reg1 ; mask random number
+
   ldc %reg0 0x1410
-  ldc %reg1 0x5 ; random number
+
   jr check_lose
 
 check_lose:
